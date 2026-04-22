@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FluxMind</title>
+  <link rel="icon" type="image/png" href="flux.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-config.js"></script>
+</head>
+
+<body>
+  <section id="authContainer" class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="flux.png" alt="FluxMind" />
+      </div>
+      <h2>Acesso ao Sistema</h2>
+      <p>Entre com e-mail e senha para acessar o painel.</p>
+      <div class="auth-form">
+        <label for="loginEmail">E-mail</label>
+        <input id="loginEmail" type="email" placeholder="Digite seu e-mail" />
+
+        <label for="loginSenha">Senha</label>
+        <input id="loginSenha" type="password" placeholder="Digite sua senha" />
+
+        <button id="btnLogin" class="btn-primary" type="button">Entrar</button>
+        <div id="authFeedback" class="sync-feedback info"></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="appContainer" class="hidden">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="flux.png" alt="FluxMind" class="topbar-logo" />
+        <div>
+          <h1>FluxMind</h1>
+          <p>Registro por hora (08h às 20h) com atualização em tempo real.</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="usuarioAtual" class="user-chip">Usuário: -</span>
+        <button id="btnLogout" class="btn-light" type="button">Sair</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="coleta">Contador de Fluxo</button>
+      <button id="tabPainel" class="tab" data-tab="painel">Total + Gráfico</button>
+      <button id="tabHistorico" class="tab" data-tab="historico">Histórico</button>
+      <button id="tabColaboradores" class="tab" data-tab="colaboradores">Criar Cadastro de Colaboradores</button>
+    </nav>
+
+    <main>
+      <section id="coleta" class="tab-content active">
+        <div class="card">
+          <h2>Cadastro da Pesquisa Mensal</h2>
+          <p>Selecione o dia no calendário e identifique o pesquisador responsável.</p>
+          <div class="survey-grid">
+            <div>
+              <label for="dataPesquisa">Dia da pesquisa</label>
+              <input id="dataPesquisa" type="date" />
+            </div>
+
+            <div>
+              <label for="filialPesquisa">Filial</label>
+              <input id="filialPesquisa" type="text" placeholder="Ex: Filial Centro" />
+            </div>
+            <div>
+              <label for="colaboradorPesquisa">Colaborador</label>
+              <select id="colaboradorPesquisa">
+                <option value="">Selecione...</option>
+                <option value="Colaborador 1">Colaborador 1</option>
+                <option value="Colaborador 2">Colaborador 2</option>
+                <option value="Colaborador 3">Colaborador 3</option>
+                <option value="Colaborador 4">Colaborador 4</option>
+                <option value="Colaborador 5">Colaborador 5</option>
+              </select>
+            </div>
+            <div>
+              <label for="cpfPesquisador">CPF</label>
+              <input id="cpfPesquisador" type="text" placeholder="000.000.000-00" />
+            </div>
+            <div>
+              <label for="cidadePesquisa">Cidade</label>
+              <input id="cidadePesquisa" type="text" placeholder="Ex: São Paulo" />
+            </div>
+            <div>
+              <label for="periodoPesquisa">Período da pesquisa</label>
+              <select id="periodoPesquisa">
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noite">Noite</option>
+                <option value="Integral">Integral</option>
+                <option value="Personalizado">Personalizado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Lançamento por Horário</h2>
+          <p>Digite quantas pessoas passaram em cada intervalo de 1 hora.</p>
+          <div class="sync-panel">
+            <div class="sync-status-line">
+              <span id="statusConexao" class="status-badge">Verificando conexão...</span>
+              <span id="statusFila" class="status-detail">Fila pendente: 0</span>
+            </div>
+            <div class="sync-controls">
+              <button id="btnSyncNow" class="btn-secondary" type="button">
+                Sincronizar agora
+              </button>
+            </div>
+            <div id="syncFeedback" class="sync-feedback info">Aguardando...</div>
+            <!-- campos legados mantidos ocultos para não quebrar referências JS -->
+            <input id="endpointInput" type="hidden" />
+          </div>
+          <div id="inputs-container" class="inputs-grid"></div>
+          <div style="margin-top:20px;text-align:center">
+            <button id="btnEnviarContagem" class="btn-primary" type="button" style="min-width:200px;font-size:1.05em">
+              Enviar Contagem
+            </button>
+            <div id="enviarContagemFeedback" class="sync-feedback" style="margin-top:10px;display:none"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <section id="painel" class="tab-content">
+        <div class="card">
+          <h2>Identificação da Pesquisa</h2>
+          <div class="meta-grid">
+
+            <div><span class="label">Filial</span><strong id="refFilial">--</strong></div>
+            <div><span class="label">Dia da pesquisa</span><strong id="refData">--/--/----</strong></div>
+            <div><span class="label">Cidade</span><strong id="refCidade">--</strong></div>
+            <div><span class="label">Pesquisador</span><strong id="refPesquisador">--</strong></div>
+            <div><span class="label">CPF</span><strong id="refCpf">--</strong></div>
+            <div><span class="label">Período</span><strong id="refPeriodo">--</strong></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title-row">
+            <h2 id="tituloTabela">Contagem fluxo</h2>
+            <button id="btnExportar" class="btn-print" type="button">
+              Exportar Relatório (PDF)
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Intervalo</th>
+                <th>Pessoas</th>
+                <th>% do Total</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card highlights">
+          <div>
+            <span class="label">Data</span>
+            <strong id="dataAtual">--/--/----</strong>
+          </div>
+          <div>
+            <span class="label">Total de Pessoas</span>
+            <strong id="totalPessoas">0</strong>
+          </div>
+          <div>
+            <span class="label">Média por Hora</span>
+            <strong id="mediaHora">0</strong>
+          </div>
+          <div>
+            <span class="label">Horário de Pico</span>
+            <strong id="horarioPico">--</strong>
+          </div>
+          <div>
+            <span class="label">Menor Fluxo</span>
+            <strong id="menorFluxo">--</strong>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Gráfico de Fluxo por Hora</h2>
+          <canvas id="fluxoChart" height="100"></canvas>
+        </div>
+
+        <div class="card">
+          <h2>Comparativo Entre Horários</h2>
+          <div id="comparativoResumo" class="note"></div>
+          <div id="rankingHorarios" class="ranking-list"></div>
+        </div>
+      </section>
+
+
+      <section id="historico" class="tab-content">
+        <div class="card">
+          <div class="card-title-row">
+            <h2>Histórico de Contagens</h2>
+            <button id="btnLimparHistorico" class="btn-danger" type="button">Limpar histórico</button>
+          </div>
+          <p>Registros salvos automaticamente ao trocar de dia.</p>
+          <div id="historicoFeedback" class="sync-feedback info" style="margin-bottom:12px">Nenhum registro ainda.</div>
+          <div id="listaHistorico" class="historico-list"></div>
+        </div>
+      </section>
+
+      <section id="colaboradores" class="tab-content">
+        <div class="card">
+          <h2>Criar Login de Colaborador</h2>
+          <p>Cadastre um novo usuário com acesso ao sistema.</p>
+          <div class="survey-grid">
+            <div>
+              <label for="novoUsuarioNome">Nome completo</label>
+              <input id="novoUsuarioNome" type="text" placeholder="Nome do colaborador" />
+            </div>
+            <div>
+              <label for="novoUsuarioEmail">E-mail</label>
+              <input id="novoUsuarioEmail" type="email" placeholder="email@exemplo.com" />
+            </div>
+            <div>
+              <label for="novoUsuarioSenha">Senha</label>
+              <input id="novoUsuarioSenha" type="password" placeholder="Mínimo 6 caracteres" />
+            </div>
+          </div>
+          <div class="admin-actions">
+            <button id="btnCriarUsuario" class="btn-primary" type="button">Criar Acesso</button>
+          </div>
+          <div id="criarUsuarioFeedback" class="sync-feedback info">Preencha os dados e clique em Criar Acesso.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title-row">
+            <h2>Usuários Cadastrados</h2>
+            <button id="btnAtualizarUsuarios" class="btn-secondary" type="button">Atualizar lista</button>
+          </div>
+          <div id="listaUsuariosFeedback" class="sync-feedback info">Carregando...</div>
+          <div id="listaUsuarios"></div>
+        </div>
+
+        <!-- Modal de edição -->
+        <div id="modalEditarUsuario" class="modal-overlay hidden">
+          <div class="modal-card">
+            <h3>Editar Usuário</h3>
+            <label>Nome</label>
+            <input id="editNome" type="text" placeholder="Nome completo" />
+            <label>E-mail</label>
+            <input id="editEmail" type="email" placeholder="email@exemplo.com" />
+            <label>Nova senha <span style="font-weight:normal;font-size:0.85em">(deixe vazio para não alterar)</span></label>
+            <input id="editSenha" type="password" placeholder="Nova senha" />
+            <label>Papel</label>
+            <select id="editRole">
+              <option value="collaborator">Colaborador</option>
+              <option value="manager">Gestor</option>
+            </select>
+            <div id="editFeedback" class="sync-feedback info" style="margin-top:8px"></div>
+            <div class="admin-actions" style="margin-top:12px">
+              <button id="btnSalvarEdicao" class="btn-primary" type="button">Salvar</button>
+              <button id="btnCancelarEdicao" class="btn-secondary" type="button">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Cadastro de Colaboradores</h2>
+          <p>Somente administrador: mantenha os dados padrão de pesquisa por colaborador.</p>
+          <div class="survey-grid">
+            <div>
+              <label for="adminNomeColaborador">Nome do colaborador</label>
+              <input id="adminNomeColaborador" type="text" placeholder="Nome completo" />
+            </div>
+            <div>
+              <label for="adminCpfColaborador">CPF padrão</label>
+              <input id="adminCpfColaborador" type="text" placeholder="000.000.000-00" />
+            </div>
+            <div>
+              <label for="adminCidadeColaborador">Cidade padrão</label>
+              <input id="adminCidadeColaborador" type="text" placeholder="Ex: São Paulo" />
+            </div>
+            <div>
+              <label for="adminDataPesquisaColaborador">Dia da pesquisa padrão</label>
+              <input id="adminDataPesquisaColaborador" type="date" />
+            </div>
+
+            <div>
+              <label for="adminFilialColaborador">Filial padrão</label>
+              <input id="adminFilialColaborador" type="text" placeholder="Ex: Filial Centro" />
+            </div>
+            <div>
+              <label for="adminPeriodoColaborador">Período padrão</label>
+              <select id="adminPeriodoColaborador">
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noite">Noite</option>
+                <option value="Integral">Integral</option>
+                <option value="Personalizado">Personalizado</option>
+              </select>
+            </div>
+          </div>
+          <div class="admin-actions">
+            <button id="btnSalvarColaborador" class="btn-secondary" type="button">Salvar/Atualizar</button>
+            <button id="btnLimparColaborador" class="btn-secondary" type="button">Limpar formulário</button>
+          </div>
+          <div class="survey-grid">
+            <div>
+              <label for="filtroCidadeColaborador">Filtrar por cidade</label>
+              <input id="filtroCidadeColaborador" type="text" placeholder="Digite a cidade para filtrar" />
+            </div>
+          </div>
+          <div id="adminFeedback" class="sync-feedback info">Cadastre e mantenha os colaboradores aqui.</div>
+          <div id="listaColaboradores" class="ranking-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

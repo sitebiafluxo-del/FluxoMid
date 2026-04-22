@@ -1,0 +1,16 @@
+# Dependências baixadas localmente (usar CDN)
+supabase.js
+
+# Configurações de IDEs e ferramentas locais
+.claude/
+.cursor/
+.mcp.json
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Imagens temporárias/desnecessárias
+Whisk_*.jpeg
+Whisk_*.jpg
+Whisk_*.png
