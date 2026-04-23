@@ -153,7 +153,7 @@ async function bootstrapAuth() {
     updateAuthUI();
     if (session) {
       await loadHistoryFromSupabase();
-      await loadHistoryFromSupabase(); // Double check to ensure UI updates
+      await loadCollaboratorsFromSupabase();
     }
 
   });
@@ -452,6 +452,7 @@ function updateAuthUI() {
 
   authContainerEl.classList.add("hidden");
   appContainerEl.classList.remove("hidden");
+
   const labelName = currentProfile?.full_name || currentSession.user.email || "Usuário";
   usuarioAtualEl.textContent = `${labelName} (${roleLabel(currentProfile?.role)})`;
   btnLogoutEl.textContent = authBypass ? "Modo Teste" : "Sair";
@@ -755,25 +756,45 @@ function loadPesquisaMeta() {
   }
 }
 
-function loadCollaborators() {
+async function loadCollaboratorsFromSupabase() {
+  if (!supabaseClient || !currentSession) return;
+
   try {
-    const raw = localStorage.getItem(COLLABORATORS_KEY);
-    if (!raw) return getDefaultCollaborators();
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return getDefaultCollaborators();
-    return parsed.map((item) => ({
-      id: item.id || crypto.randomUUID(),
-      name: item.name || "",
-      cpf: item.cpf || "",
-      city: item.city || "",
-      subsidiary: item.subsidiary || "",
-      monthReference: item.monthReference || getCurrentMonthIso(),
-      period: item.period || "Integral",
-    }));
-  } catch {
-    return getDefaultCollaborators();
+    const { data, error } = await supabaseClient
+      .from("colaboradores")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+
+    if (data) {
+      collaborators = data.map(c => ({
+        id: c.id,
+        name: c.name,
+        cpf: c.cpf,
+        city: c.city,
+        researchDate: c.research_date,
+        subsidiary: c.subsidiary,
+        monthReference: c.month_reference,
+        period: c.period
+      }));
+      saveCollaborators(); // Backup local
+      populateCollaboratorSelect();
+      renderCollaboratorList();
+    }
+  } catch (e) {
+    console.error("Erro ao carregar colaboradores:", e);
   }
 }
+
+function loadCollaborators() {
+  const local = localStorage.getItem(COLLABORATORS_KEY);
+  if (local) {
+    try { return JSON.parse(local); } catch (e) { return getDefaultCollaborators(); }
+  }
+  return getDefaultCollaborators();
+}
+
 
 function saveCollaborators() {
   localStorage.setItem(COLLABORATORS_KEY, JSON.stringify(collaborators));
@@ -858,7 +879,7 @@ function onCollaboratorSelected() {
   renderAll();
 }
 
-function saveCollaboratorFromAdminForm() {
+async function saveCollaboratorFromAdminForm() {
   if (!canViewPanel()) {
     setAdminFeedback("Apenas administrador pode editar colaboradores.", "error");
     return;
@@ -870,31 +891,33 @@ function saveCollaboratorFromAdminForm() {
     return;
   }
 
+  const id = editingCollaboratorId || crypto.randomUUID();
   const payload = {
-    id: editingCollaboratorId || crypto.randomUUID(),
+    id,
     name,
     cpf: adminCpfColaboradorEl.value.trim(),
     city: adminCidadeColaboradorEl.value.trim(),
-    researchDate: adminDataPesquisaColaboradorEl.value,
+    research_date: adminDataPesquisaColaboradorEl.value,
     subsidiary: adminFilialColaboradorEl.value.trim(),
-    monthReference: adminDataPesquisaColaboradorEl.value ? adminDataPesquisaColaboradorEl.value.slice(0, 7) : getCurrentMonthIso(),
+    month_reference: adminDataPesquisaColaboradorEl.value ? adminDataPesquisaColaboradorEl.value.slice(0, 7) : getCurrentMonthIso(),
     period: adminPeriodoColaboradorEl.value,
+    updated_at: new Date().toISOString()
   };
 
-  const existingIndex = collaborators.findIndex((item) => item.id === payload.id || item.name.toLowerCase() === name.toLowerCase());
-  if (existingIndex >= 0) {
-    collaborators[existingIndex] = { ...collaborators[existingIndex], ...payload };
-    setAdminFeedback("Colaborador atualizado com sucesso.", "success");
-  } else {
-    collaborators.push(payload);
-    setAdminFeedback("Colaborador cadastrado com sucesso.", "success");
-  }
+  setAdminFeedback("Salvando na nuvem...", "info");
 
-  saveCollaborators();
-  populateCollaboratorSelect();
-  renderCollaboratorList();
-  resetAdminCollaboratorForm(false);
+  try {
+    const { error } = await supabaseClient.from("colaboradores").upsert(payload);
+    if (error) throw error;
+
+    await loadCollaboratorsFromSupabase(); // Atualiza a lista local com os dados do banco
+    setAdminFeedback("Colaborador salvo com sucesso!", "success");
+    resetAdminCollaboratorForm(false);
+  } catch (e) {
+    setAdminFeedback("Erro ao salvar: " + e.message, "error");
+  }
 }
+
 
 function renderCollaboratorList() {
   listaColaboradoresEl.innerHTML = "";
@@ -950,20 +973,20 @@ function editCollaborator(id) {
   setAdminFeedback(`Editando: ${found.name}`, "info");
 }
 
-function removeCollaborator(id) {
-  const found = collaborators.find((item) => item.id === id);
-  if (!found) return;
-  collaborators = collaborators.filter((item) => item.id !== id);
-  if (pesquisaMeta.nomeColaborador === found.name) {
-    pesquisaMeta.nomeColaborador = "";
+async function removeCollaborator(id) {
+  if (!confirm("Tem certeza que deseja remover este colaborador?")) return;
+  
+  setAdminFeedback("Removendo...", "info");
+  
+  try {
+    const { error } = await supabaseClient.from("colaboradores").delete().eq("id", id);
+    if (error) throw error;
+    
+    await loadCollaboratorsFromSupabase();
+    setAdminFeedback("Colaborador removido.", "success");
+  } catch (e) {
+    setAdminFeedback("Erro ao remover: " + e.message, "error");
   }
-  saveCollaborators();
-  savePesquisaMeta();
-  populateCollaboratorSelect();
-  renderCollaboratorList();
-  hydrateMetaInputs();
-  renderAll();
-  setAdminFeedback("Colaborador removido.", "warning");
 }
 
 function resetAdminCollaboratorForm(showMessage = true) {
