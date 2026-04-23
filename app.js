@@ -151,7 +151,11 @@ async function bootstrapAuth() {
     currentSession = session;
     await refreshProfile();
     updateAuthUI();
-    if (session) await loadHistoryFromSupabase();
+    if (session) {
+      await loadHistoryFromSupabase();
+      await loadHistoryFromSupabase(); // Double check to ensure UI updates
+    }
+
   });
 }
 
@@ -1102,59 +1106,81 @@ function saveHistory() {
 
 async function loadHistoryFromSupabase() {
   if (!supabaseClient || !currentSession) return;
-  const { data, error } = await supabaseClient
-    .from("historico")
-    .select("*")
-    .order("saved_at", { ascending: false });
-  if (error || !data) return;
 
-  const remoto = data.map((r) => ({
-    id: r.id,
-    date: r.date,
-    filial: r.filial,
-    nomeColaborador: r.nome_colaborador,
-    cpf: r.cpf,
-    cidade: r.cidade,
-    periodo: r.periodo,
-    mesReferencia: r.mes_referencia,
-    total: r.total,
-    data: r.data,
-    savedAt: r.saved_at,
-    updatedAt: r.updated_at,
-    userId: r.user_id,
-  }));
+  const feedbackEl = document.getElementById("historicoFeedback");
+  if (feedbackEl) {
+    feedbackEl.textContent = "Sincronizando histórico com a nuvem...";
+    feedbackEl.className = "sync-feedback info";
+  }
 
-  // Mescla: mantém entradas locais que ainda não foram para o servidor
-  const remotoIds = new Set(remoto.map((e) => e.id));
-  const apenasLocais = historico.filter((e) => !remotoIds.has(e.id));
-  historico = [...remoto, ...apenasLocais];
-  saveHistory();
-  renderHistoricoList();
+  try {
+    const { data, error } = await supabaseClient
+      .from("contagens")
+      .select("*")
+      .order("date", { ascending: false });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const remoteHistory = data.map((item) => ({
+        date: item.date,
+        total: item.total,
+        data: item.intervals.map((i) => i.people),
+        cidade: item.city,
+        filial: item.subsidiary,
+        nomeColaborador: item.collaborator_name,
+        cpf: item.collaborator_cpf,
+        periodo: item.period,
+        mesReferencia: item.month_reference,
+        updatedAt: item.updated_at,
+        isSynced: true
+      }));
+
+      // Mescla e evita duplicados por data
+      const existingDates = new Set(historico.map(h => h.date));
+      const newItems = remoteHistory.filter(h => !existingDates.has(h.date));
+      
+      historico = [...historico, ...newItems].sort((a, b) => new Date(b.date) - new Date(a.date));
+      saveHistory();
+    }
+    
+    renderHistoricoList();
+  } catch (e) {
+    console.error("Erro ao carregar histórico do Supabase:", e);
+    if (feedbackEl) {
+      feedbackEl.textContent = "Erro ao sincronizar histórico. Usando dados locais.";
+      feedbackEl.className = "sync-feedback warning";
+    }
+  }
 }
+
 
 async function upsertHistoricoSupabase(entry) {
   if (!supabaseClient || !currentSession) return;
-  await supabaseClient.from("historico").upsert({
-    id: entry.id,
+  const entryDate = entry.date;
+  await supabaseClient.from("contagens").upsert({
+    id: `${currentSession.user.id}-${entryDate}`,
     user_id: currentSession.user.id,
-    date: entry.date,
-    filial: entry.filial,
-    nome_colaborador: entry.nomeColaborador,
-    cpf: entry.cpf,
-    cidade: entry.cidade,
-    periodo: entry.periodo,
-    mes_referencia: entry.mesReferencia,
+    date: entryDate,
     total: entry.total,
-    data: entry.data,
-    saved_at: entry.savedAt,
-    updated_at: entry.updatedAt,
+    intervals: hourlySlots.map((slot, idx) => ({ slot, people: entry.data[idx] ?? 0 })),
+    city: entry.cidade,
+    subsidiary: entry.filial,
+    collaborator_name: entry.nomeColaborador,
+    collaborator_cpf: entry.cpf,
+    period: entry.periodo,
+    month_reference: entry.mesReferencia,
+    updated_at: new Date().toISOString(),
   });
 }
 
-async function deleteHistoricoSupabase(id) {
+
+async function deleteHistoricoSupabase(date) {
   if (!supabaseClient || !currentSession) return;
-  await supabaseClient.from("historico").delete().eq("id", id);
+  const id = `${currentSession.user.id}-${date}`;
+  await supabaseClient.from("contagens").delete().eq("id", id);
 }
+
 
 function addToHistory(date, meta, data) {
   const total = data.reduce((s, v) => s + v, 0);
