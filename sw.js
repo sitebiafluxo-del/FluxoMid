@@ -1,7 +1,8 @@
-const CACHE_NAME = "fluxo-pessoas-v1";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js"];
+const CACHE_NAME = "fluxo-pessoas-v2";
+const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./supabase-config.js"];
 
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -15,9 +16,7 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         keys
           .filter((key) => key !== CACHE_NAME)
-          .map((key) => {
-            return caches.delete(key);
-          }),
+          .map((key) => caches.delete(key)),
       );
     }),
   );
@@ -25,8 +24,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request);
-    }),
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
+
