@@ -131,6 +131,14 @@ body {
   display: flex;
   gap: 8px;
   padding: 16px 24px 0;
+  overflow-x: auto; /* Permite deslizar para o lado no celular */
+  white-space: nowrap; /* Impede que as abas quebrem linha */
+  -webkit-overflow-scrolling: touch; /* Scroll suave no iOS */
+  scrollbar-width: none; /* Esconde a barra no Firefox */
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Esconde a barra de scroll para ficar mais limpo */
 }
 
 .tab {
@@ -140,6 +148,7 @@ body {
   padding: 10px 16px;
   font-weight: 700;
   cursor: pointer;
+  flex-shrink: 0; /* Impede que a aba seja esmagada */
 }
 
 .tab.active {
