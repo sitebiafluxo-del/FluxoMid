@@ -416,7 +416,10 @@ strong {
   border-radius: 10px;
   padding: 10px 12px;
   background: #fff;
+  gap: 12px;
+  flex-wrap: wrap; /* Permite que os botões desçam se não houver espaço */
 }
+
 
 .ranking-item .badge {
   background: #e8f0ff;
@@ -594,18 +597,35 @@ th {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid #e5e9f0;
   gap: 12px;
+  flex-wrap: wrap; /* Ajuste para celular */
 }
 .usuario-row:last-child { border-bottom: none; }
-.usuario-info { flex: 1; min-width: 0; }
-.usuario-nome { font-weight: 600; font-size: 0.95em; }
-.usuario-email { font-size: 0.82em; color: #6b7280; }
-.usuario-role { font-size: 0.78em; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+.usuario-info { flex: 1; min-width: 200px; } /* Garante um espaço mínimo para o nome */
+.usuario-nome { font-weight: 600; font-size: 0.95em; display: block; }
+.usuario-email { font-size: 0.82em; color: #6b7280; display: block; }
+.usuario-role { font-size: 0.78em; padding: 2px 8px; border-radius: 99px; font-weight: 600; display: inline-block; margin-top: 4px; }
 .usuario-role.manager { background: #dbeafe; color: #1d4ed8; }
 .usuario-role.collaborator { background: #f3f4f6; color: #374151; }
-.usuario-acoes { display: flex; gap: 8px; flex-shrink: 0; }
+.usuario-acoes { display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
+
+/* Ajuste específico para Telas Pequenas */
+@media (max-width: 500px) {
+  .usuario-row, .ranking-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .usuario-acoes, .admin-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #eee;
+  }
+}
+
 
 /* Modal */
 .modal-overlay {
