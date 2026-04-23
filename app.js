@@ -1136,7 +1136,9 @@ function loadHistory() {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Repara entradas antigas sem id (salvas antes do fix)
+    return parsed.map((e) => e.id ? e : { ...e, id: e.date });
   } catch {
     return [];
   }
