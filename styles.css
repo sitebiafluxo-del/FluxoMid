@@ -369,6 +369,16 @@ main {
   font-size: 1rem;
 }
 
+.input-row-locked {
+  opacity: 0.45;
+  background: #f2f2f5;
+}
+
+.input-row-locked input {
+  cursor: not-allowed;
+  background: #ebebef;
+}
+
 .highlights {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

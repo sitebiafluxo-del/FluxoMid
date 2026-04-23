@@ -210,6 +210,17 @@ function pad2(value) {
   return String(value).padStart(2, "0");
 }
 
+function isSlotLocked(index) {
+  const today = new Date().toISOString().split("T")[0];
+  const selectedDate = pesquisaMeta.dataPesquisa;
+  if (!selectedDate) return false;
+  if (selectedDate !== today) return true;
+  // For today: lock slots whose start hour hasn't been reached yet
+  const slotStartHour = START_HOUR + index;
+  const currentHour = new Date().getHours();
+  return slotStartHour > currentHour;
+}
+
 function renderInputs() {
   inputsContainer.innerHTML = "";
   hourlySlots.forEach((slot, index) => {
@@ -226,19 +237,26 @@ function renderInputs() {
     input.min = "0";
     input.step = "1";
     input.value = String(fluxoData[index] ?? 0);
-    input.addEventListener("input", (event) => {
-      const num = Number.parseInt(event.target.value, 10);
-      fluxoData[index] = Number.isNaN(num) || num < 0 ? 0 : num;
-      saveData();
-      enqueueSync("hour_update");
-      renderAll();
-    });
-    input.addEventListener("focus", () => {
-      if (input.value === "0") input.value = "";
-    });
-    input.addEventListener("blur", () => {
-      if (input.value === "") input.value = "0";
-    });
+
+    if (isSlotLocked(index)) {
+      input.disabled = true;
+      input.title = "Horário ainda não disponível ou data diferente de hoje";
+      row.classList.add("input-row-locked");
+    } else {
+      input.addEventListener("input", (event) => {
+        const num = Number.parseInt(event.target.value, 10);
+        fluxoData[index] = Number.isNaN(num) || num < 0 ? 0 : num;
+        saveData();
+        enqueueSync("hour_update");
+        renderAll();
+      });
+      input.addEventListener("focus", () => {
+        if (input.value === "0") input.value = "";
+      });
+      input.addEventListener("blur", () => {
+        if (input.value === "") input.value = "0";
+      });
+    }
 
     row.appendChild(label);
     row.appendChild(input);
