@@ -1384,12 +1384,12 @@ function deleteHistoricoEntry(id) {
 }
 
 async function callManageUsers(payload) {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!currentSession?.access_token) throw new Error("Sessão não encontrada.");
   const res = await fetch(`${window.SUPABASE_CONFIG.url}/functions/v1/manage-users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`,
+      "Authorization": `Bearer ${currentSession.access_token}`,
       "apikey": window.SUPABASE_CONFIG.anonKey,
     },
     body: JSON.stringify(payload),
