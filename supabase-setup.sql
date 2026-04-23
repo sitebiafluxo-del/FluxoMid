@@ -45,8 +45,71 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Promover um usuario especifico para gestor (ajuste o email)
--- update public.profiles p
--- set role = 'manager'
--- from auth.users u
--- where p.id = u.id and u.email = 'seu-email@empresa.com';
+-- Tabela de Contagens (Dia atual/Sincronização em tempo real)
+create table if not exists public.contagens (
+  id text primary key, -- Formato: user_id-data
+  user_id uuid references auth.users(id) on delete cascade,
+  date date not null,
+  total integer default 0,
+  intervals jsonb default '[]'::jsonb,
+  city text,
+  subsidiary text,
+  collaborator_name text,
+  collaborator_cpf text,
+  period text,
+  month_reference text,
+  updated_at timestamptz default now()
+);
+
+alter table public.contagens enable row level security;
+
+create policy "users_manage_own_contagens"
+  on public.contagens
+  for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Tabela de Histórico (Registros finalizados)
+create table if not exists public.historico (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  date date not null,
+  total integer default 0,
+  data jsonb default '[]'::jsonb,
+  city text,
+  subsidiary text,
+  collaborator_name text,
+  cpf text,
+  period text,
+  mes_referencia text,
+  saved_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.historico enable row level security;
+
+create policy "users_manage_own_historico"
+  on public.historico
+  for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Trigger para atualizar o campo updated_at automaticamente
+create or replace function update_updated_at_column()
+returns trigger as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$ language 'plpgsql';
+
+create trigger update_contagens_modtime
+    before update on public.contagens
+    for each row execute function update_updated_at_column();
+
+create trigger update_historico_modtime
+    before update on public.historico
+    for each row execute function update_updated_at_column();
+
