@@ -396,7 +396,7 @@ function initActions() {
   btnLimparHistoricoEl.addEventListener("click", async () => {
     if (!confirm("Tem certeza que deseja apagar todo o histórico?")) return;
     if (supabaseClient && currentSession) {
-      await supabaseClient.from("historico").delete().eq("user_id", currentSession.user.id);
+      await supabaseClient.from("contagens").delete().eq("user_id", currentSession.user.id);
     }
     historico = [];
     saveHistory();
@@ -1165,6 +1165,7 @@ async function loadHistoryFromSupabase() {
 
     if (data && data.length > 0) {
       const remoteHistory = data.map((item) => ({
+        id: item.date,
         date: item.date,
         total: item.total,
         data: item.intervals.map((i) => i.people),
