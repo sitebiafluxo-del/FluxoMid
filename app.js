@@ -1456,13 +1456,19 @@ async function handleEnviarContagem() {
     feedbackEl.className = "sync-feedback success";
     updateSyncUI();
 
+    // Limpa os dados de pesquisa para uma nova contagem
+    dataPesquisaEl.value = "";
+    pesquisaMeta.dataPesquisa = "";
+    previousDataPesquisa = "";
+    savePesquisaMeta();
+
     // Limpa os campos de contagem
     fluxoData = fluxoData.map(() => 0);
     saveData();
-    document.querySelectorAll("#inputs-container input[type='number']").forEach((input) => {
-      input.value = "0";
-    });
+    
+    renderInputs();
     renderAll();
+
   } catch (e) {
     feedbackEl.textContent = `Erro ao enviar: ${e.message}`;
     feedbackEl.className = "sync-feedback error";
