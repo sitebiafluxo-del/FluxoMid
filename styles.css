@@ -129,27 +129,39 @@ body {
 
 .tabs {
   display: flex;
-  gap: 8px;
-  padding: 16px 24px 0;
-  overflow-x: auto; /* Permite deslizar para o lado no celular */
-  white-space: nowrap; /* Impede que as abas quebrem linha */
-  -webkit-overflow-scrolling: touch; /* Scroll suave no iOS */
-  scrollbar-width: none; /* Esconde a barra no Firefox */
-}
-
-.tabs::-webkit-scrollbar {
-  display: none; /* Esconde a barra de scroll para ficar mais limpo */
+  padding: 16px 8px 0; /* Padding lateral reduzido */
+  width: 100%;
+  gap: 2px; /* Espaço mínimo entre abas */
+  justify-content: space-between;
 }
 
 .tab {
+  flex: 1 1 0; /* Divide o espaço exatamente igual em 4 */
+  min-width: 0; /* Impede que o texto empurre a largura */
   border: 1px solid var(--border);
   background: #fff;
-  border-radius: 10px 10px 0 0;
-  padding: 10px 16px;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 2px;
   font-weight: 700;
   cursor: pointer;
-  flex-shrink: 0; /* Impede que a aba seja esmagada */
+  text-align: center;
+  font-size: 0.78rem; /* Tamanho otimizado para Caber */
+  line-height: 1.1;
+  white-space: normal; /* Permite quebrar linha se necessário para manter a proporção */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+
+/* Ajuste fino para celulares muito pequenos */
+@media (max-width: 400px) {
+  .tab {
+    font-size: 0.72rem;
+    padding: 10px 2px;
+  }
+}
+
 
 .tab.active {
   border-color: var(--primary);
