@@ -147,15 +147,18 @@ async function bootstrapAuth() {
   await refreshProfile();
   updateAuthUI();
 
-  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     currentSession = session;
     await refreshProfile();
     updateAuthUI();
     if (session) {
-      await loadHistoryFromSupabase();
+      // No evento SIGNED_IN (disparado pelo SDK após login), garante cache limpo
+      if (event === "SIGNED_IN") {
+        clearLocalCache();
+      }
       await loadCollaboratorsFromSupabase();
+      await loadHistoryFromSupabase();
     }
-
   });
 }
 
@@ -425,6 +428,16 @@ function initActions() {
   });
 }
 
+/** Remove todos os dados em cache do localStorage para garantir dados frescos do Supabase. */
+function clearLocalCache() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SYNC_QUEUE_KEY);
+  localStorage.removeItem(META_KEY);
+  localStorage.removeItem(COLLABORATORS_KEY);
+  localStorage.removeItem(HISTORY_KEY);
+  console.info("[FluxoMid] Cache local apagado — dados serão recarregados do Supabase.");
+}
+
 async function handleLogin() {
   if (authBypass) {
     setAuthFeedback("Login desativado em modo teste. Defina authBypass=false para reativar.", "info");
@@ -455,10 +468,33 @@ async function handleLogin() {
     return;
   }
 
+  // Apaga o cache local logo após o login bem-sucedido
+  clearLocalCache();
+
+  // Reinicia variáveis em memória para que o reload do Supabase seja a única fonte
+  fluxoData = Array(hourlySlots.length).fill(0);
+  syncQueue = [];
+  pesquisaMeta = {
+    dataPesquisa: "", mesReferencia: "", filial: "",
+    nomeColaborador: "", cpf: "", cidade: "", periodo: "Integral",
+  };
+  collaborators = [];
+  historico = [];
+
   currentSession = data.session;
   await refreshProfile();
   loginSenhaEl.value = "";
   updateAuthUI();
+
+  // Recarrega tudo do Supabase agora que o cache está limpo
+  setAuthFeedback("Carregando dados do servidor...", "info");
+  await loadCollaboratorsFromSupabase();
+  await loadHistoryFromSupabase();
+  hydrateMetaInputs();
+  populateCollaboratorSelect();
+  renderInputs();
+  renderAll();
+  setAuthFeedback("", "info");
 }
 
 function updateAuthUI() {
