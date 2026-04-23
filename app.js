@@ -347,7 +347,7 @@ function initActions() {
     window.print();
   });
 
-  document.getElementById("btnEnviarContagem").addEventListener("click", handleEnviarContagem);
+
 
   btnSyncNow.addEventListener("click", () => {
     enqueueSync("manual_sync");
@@ -599,6 +599,15 @@ async function flushSyncQueue() {
     saveSyncQueue();
     lastSyncSuccessAt = new Date();
     setSyncFeedback(`Sincronizado com Supabase às ${lastSyncSuccessAt.toLocaleTimeString("pt-BR")}.`, "success");
+
+    // Mostra a mensagem de sucesso no rodapé automaticamente
+    const footMsg = document.getElementById("enviarContagemFeedback");
+    if (footMsg) {
+      footMsg.textContent = `Dados salvos e sincronizados com sucesso às ${lastSyncSuccessAt.toLocaleTimeString("pt-BR")}!`;
+      footMsg.className = "sync-feedback success";
+      footMsg.style.display = "block";
+    }
+
   } catch (e) {
     setSyncFeedback(`Erro ao sincronizar: ${e.message}. Tentará novamente automaticamente.`, "error");
   }
