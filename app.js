@@ -349,10 +349,7 @@ function initActions() {
 
 
 
-  btnSyncNow.addEventListener("click", () => {
-    enqueueSync("manual_sync");
-    flushSyncQueue();
-  });
+
 
   colaboradorPesquisaEl.addEventListener("change", onCollaboratorSelected);
   btnSalvarColaboradorEl.addEventListener("click", saveCollaboratorFromAdminForm);
