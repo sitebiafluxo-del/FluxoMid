@@ -211,6 +211,7 @@ function pad2(value) {
 }
 
 function isSlotLocked(index) {
+  if (canViewPanel()) return false; // gestores e admins ficam livres
   const today = new Date().toISOString().split("T")[0];
   const selectedDate = pesquisaMeta.dataPesquisa;
   if (!selectedDate) return false;
