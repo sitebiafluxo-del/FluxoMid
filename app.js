@@ -1217,10 +1217,11 @@ async function upsertHistoricoSupabase(entry) {
 }
 
 
-async function deleteHistoricoSupabase(date) {
+async function deleteHistoricoSupabase(entryId) {
   if (!supabaseClient || !currentSession) return;
-  const id = `${currentSession.user.id}-${date}`;
-  await supabaseClient.from("contagens").delete().eq("id", id);
+  const entryDate = entryId.substring(0, 10); // extrai "YYYY-MM-DD" do id local
+  const supabaseId = `${currentSession.user.id}-${entryDate}`;
+  await supabaseClient.from("contagens").delete().eq("id", supabaseId);
 }
 
 
