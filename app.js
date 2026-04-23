@@ -35,10 +35,9 @@ const rankingHorariosEl = document.getElementById("rankingHorarios");
 const btnExportar = document.getElementById("btnExportar");
 const statusConexaoEl = document.getElementById("statusConexao");
 const statusFilaEl = document.getElementById("statusFila");
-const endpointInputEl = document.getElementById("endpointInput");
-const btnSalvarEndpoint = document.getElementById("btnSalvarEndpoint");
-const btnSyncNow = document.getElementById("btnSyncNow");
 const syncFeedbackEl = document.getElementById("syncFeedback");
+const btnSyncNow = document.getElementById("btnSyncNow");
+
 const dataPesquisaEl = document.getElementById("dataPesquisa");
 const filialPesquisaEl = document.getElementById("filialPesquisa");
 const colaboradorPesquisaEl = document.getElementById("colaboradorPesquisa");
@@ -74,7 +73,8 @@ const adminMesReferenciaAnoEl = document.getElementById("adminMesReferenciaAno")
 const hourlySlots = buildHourlySlots(START_HOUR, END_HOUR);
 let fluxoData = loadData();
 let syncQueue = loadSyncQueue();
-let sheetEndpointUrl = loadSheetEndpoint();
+let sheetEndpointUrl = "";
+
 let chartInstance = null;
 let syncInProgress = false;
 let lastSyncSuccessAt = null;
@@ -93,7 +93,7 @@ initTabs();
 renderInputs();
 renderAll();
 initActions();
-endpointInputEl.value = sheetEndpointUrl;
+
 populateReferenceSelectors();
 populateCollaboratorSelect();
 hydrateMetaInputs();
@@ -714,9 +714,7 @@ function saveSyncQueue() {
   localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(syncQueue));
 }
 
-function loadSheetEndpoint() {
-  return localStorage.getItem(SHEET_ENDPOINT_KEY) || "";
-}
+
 
 function loadPesquisaMeta() {
   try {
@@ -1076,10 +1074,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function saveEndpointFromInput() {
-  sheetEndpointUrl = endpointInputEl.value.trim();
-  localStorage.setItem(SHEET_ENDPOINT_KEY, sheetEndpointUrl);
-}
+
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
