@@ -624,7 +624,8 @@ function updateSyncUI() {
   const syncStatus = syncInProgress ? "Sincronizando..." : "Aguardando";
   statusFilaEl.textContent = `Supabase ${logado ? "conectado" : "desconectado"} | ${syncStatus} | Fila pendente: ${syncQueue.length}`;
 
-  btnSyncNow.disabled = !(online && logado && syncQueue.length > 0 && !syncInProgress);
+
+
 
   if (!logado) {
     setSyncFeedback("Faça login para sincronizar com o Supabase.", "info");
