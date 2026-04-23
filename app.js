@@ -1277,6 +1277,7 @@ function renderHistoricoList() {
         <div class="historico-summary">
           <span class="badge historico-total">${entry.total} pessoas</span>
           <span class="historico-pico">Pico: ${escapeHtml(picoLabel)}</span>
+          <button class="btn-apagar-header" data-id="${escapeHtml(entry.id)}" title="Apagar registro">🗑</button>
           <span class="historico-chevron">▼</span>
         </div>
       </div>
@@ -1306,6 +1307,10 @@ function renderHistoricoList() {
 
     card.querySelector(".btn-restaurar").addEventListener("click", () => restoreFromHistory(entry.id));
     card.querySelector(".btn-apagar").addEventListener("click", () => deleteHistoricoEntry(entry.id));
+    card.querySelector(".btn-apagar-header").addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteHistoricoEntry(entry.id);
+    });
 
     listaHistoricoEl.appendChild(card);
   });
