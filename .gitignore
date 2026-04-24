@@ -6,6 +6,9 @@ supabase.js
 .cursor/
 .mcp.json
 
+# Documentação interna (manter só local)
+SDD.md
+
 # Arquivos de sistema
 .DS_Store
 Thumbs.db
